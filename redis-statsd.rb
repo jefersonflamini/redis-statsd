@@ -43,6 +43,10 @@ def instrument_redis(redis_host)
   # Memory fragmentation ratio
   send_gauge("#{namespace}.mem_fragmentation_ratio", redis['mem_fragmentation_ratio'])
 
+  # Master link status
+  if redis['role'] == 'slave'
+    if redis['master_link_status'] == 'up'
+
   # Databases
   # send number of keys in each database, e.g. 
   #  db0.keys = value
@@ -75,9 +79,9 @@ end
 interrupted = false
 trap("INT") { interrupted = true }
 
+@socket = UDPSocket.new
 while true
   #puts "collecting"
-  @socket = UDPSocket.new
   instrument_redis('127.0.0.1')
   sleep(1)
   if interrupted
