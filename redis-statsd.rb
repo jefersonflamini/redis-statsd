@@ -34,7 +34,7 @@ def instrument_redis(redis_host)
   # Miss percentage
   hits = redis['keyspace_hits'].to_i + redis['keyspace_misses'].to_i
   if hits > 0
-     miss_percentage = 100*(redis['keyspace_misses'].to_i / hits)
+    miss_percentage = 100.0*(redis['keyspace_misses'].to_f / hits.to_f)
   else
     miss_percentage = 0.0
   end
@@ -43,12 +43,8 @@ def instrument_redis(redis_host)
   # Memory fragmentation ratio
   send_gauge("#{namespace}.mem_fragmentation_ratio", redis['mem_fragmentation_ratio'])
 
-  # Master link status
-  if redis['role'] == 'slave'
-    if redis['master_link_status'] == 'up'
-
   # Databases
-  # send number of keys in each database, e.g. 
+  # send number of keys in each database, e.g.
   #  db0.keys = value
   #  db1.keys = value
   #  ...
@@ -68,7 +64,6 @@ def send_gauge(path, value, time=nil)
   msg = "#{path}:#{value}|g\n"
   #puts msg
   @socket.send(msg, 0, STATSD_HOST, STATSD_PORT)
-  msg
 end
 
 # ----------------
