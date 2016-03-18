@@ -10,9 +10,12 @@ STATSD_HOST="127.0.0.1"
 STATSD_PORT=8125
 
 def instrument_redis(redis_host)
-  namespace = "redis"
+
+  puts "-----------"
+
+  namespace = "#{redis_host}"
   redis = {}
-  `/usr/bin/redis-cli -h #{redis_host} info`.each_line do |line|
+  `redis-cli -h #{redis_host} info`.each_line do |line|
     key,value = line.chomp.split(/:/)
     redis[key]=value
   end
@@ -27,6 +30,9 @@ def instrument_redis(redis_host)
      changes_since_last_save
      connected_clients
      evicted_keys
+     expired_keys
+     total_commands_processed
+     instantaneous_ops_per_sec
      connected_slaves}.each do |item|
      send_gauge("#{namespace}.#{item}", redis[item].to_i)
   end
@@ -48,12 +54,12 @@ def instrument_redis(redis_host)
   #  db0.keys = value
   #  db1.keys = value
   #  ...
-  `/usr/bin/redis-cli -h #{redis_host} info keyspace`.each_line do |line|
+  `redis-cli -h #{redis_host} info keyspace`.each_line do |line|
     if /^db/.match(line)
-      db_data = line.match(/(db.*?):keys=(.*?),.*/).to_a
-      database_key = db_data[1].to_s + ".keys"
-      num_keys = db_data[2].to_i
-      send_gauge("#{namespace}.#{database_key}", num_keys)
+      db_data = line.match(/(db.*?):keys=(.*?),expires=(.*?),avg_ttl=(.*?)\r/).to_a
+      send_gauge("#{namespace}." + db_data[1].to_s + ".keys", db_data[2].to_i)
+      send_gauge("#{namespace}." + db_data[1].to_s + ".expires", db_data[3].to_i)
+      send_gauge("#{namespace}." + db_data[1].to_s + ".agv_ttl", db_data[4].to_i)
     end
   end
 
@@ -62,7 +68,7 @@ end
 def send_gauge(path, value, time=nil)
   time ||= Time.new
   msg = "#{path}:#{value}|g\n"
-  #puts msg
+  puts msg
   @socket.send(msg, 0, STATSD_HOST, STATSD_PORT)
 end
 
