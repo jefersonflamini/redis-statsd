@@ -9,11 +9,10 @@ require 'pp'
 STATSD_HOST="127.0.0.1"
 STATSD_PORT=8125
 
-def instrument_redis(redis_host)
+def instrument_redis(redis_host, namespace)
 
   puts "-----------"
 
-  namespace = "#{redis_host}"
   redis = {}
   `redis-cli -h #{redis_host} info`.each_line do |line|
     key,value = line.chomp.split(/:/)
@@ -83,7 +82,7 @@ trap("INT") { interrupted = true }
 @socket = UDPSocket.new
 while true
   #puts "collecting"
-  instrument_redis('127.0.0.1')
+  instrument_redis('localhost', "teste")
   sleep(1)
   if interrupted
     @socket.close
