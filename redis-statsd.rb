@@ -5,6 +5,12 @@ require 'pp'
 # This script runs every minute, captures stats about redis
 # and forwards them to statsd.
 
+# pass by command line arguments 
+#    hostname    ->  redis server
+#    namespace   ->  name to show on graphite
+#
+#   ex.  ruby redis-statsd.rb redis.acme.com myredis
+
 # Graphite/carbon settings
 STATSD_HOST="127.0.0.1"
 STATSD_PORT=8125
@@ -82,7 +88,7 @@ trap("INT") { interrupted = true }
 @socket = UDPSocket.new
 while true
   #puts "collecting"
-  instrument_redis('localhost', "teste")
+  instrument_redis(ARGV[0], ARGV[1])
   sleep(1)
   if interrupted
     @socket.close
